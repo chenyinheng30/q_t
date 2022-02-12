@@ -30,17 +30,21 @@ class running_by_cycle(Thread):
     def __init__(self,start_time,cycle,running_time,accuracy,func,args):
         Thread.__init__(self)
         self.__tasks_queue=Queue(maxsize=running_time/cycle)
-        self.__result=None
+        self.__result=Queue(maxsize=running_time/cycle)
+        self.__is_result_ready=False
         self.__start_time=start_time
         for t in range(0,running_time,cycle):
-            task=time_butler(start_time+t,accuracy,func,tuple([self.__result]+list(args)))
+            task=time_butler(start_time+t,accuracy,func,(self,)+args)
             self.__tasks_queue.put(task)
     def run(self):
-        len=self.__tasks_queue.qsize()
-        self.__result=Queue(len)
-        for i in range(len):
+        self.__is_result_ready=True
+        for i in range(self.__tasks_queue.qsize()):
             task=self.__tasks_queue.get()
             task.start()
             task.join()
     def get_result(self):
-        return self.__result
+        if self.__is_result_ready:
+            return self.__result
+        else:
+            raise RuntimeError('running_by_cycle: result is not ready')
+            return
