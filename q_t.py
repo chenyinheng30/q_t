@@ -105,25 +105,39 @@ class Study_Stock_Data(Thread_WAR):
         for i in range(args.qsize()):
             self.add_args(args.get())
     def run(self):
-        for i in range(self._args_qsize()):
-            print(self._args_get())
-        pass
+        self.study_stock_data()
     def __init__(self, sizeof_args):
         Thread_WAR.__init__(self,sizeof_args, 0)
+        self.study_stock_data=self.test
+    #具体各数据处理的方法
+    def test(self):
+        for i in range(self._args_qsize()):
+            print(self._args_get())
+
 #the end of class Study_Stock_Data
 
 import requests
 class Get_Stock_Data(Time_Butler):
+    #以下实现抽象的获取数据的过程
     def __init__(self,end_time,cycle,sizeof_res,stock_code):
         Time_Butler.__init__(self,end_time,cycle,0,sizeof_res)
         self.__stock_code=stock_code
+        #通过下一行更改的数据获取方法
+        self.__get_data_methods=self.test
     def fuc(self):
         if self._res_full():
             a=Study_Stock_Data(self.res_qsize())
             a.set_args(self.get_res())
             a.start()
-        print(time.time())
+        text=self.__get_data_methods()
+        self._add_res(text)
+#具体各网站数据获取的方法
+    def get_tencent_stock_data(self):
         page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.__stock_code))
         text=page.text
-        self._add_res(text)
+        return text
+    def test(self):
+        print(time.time())
+        return  self.get_tencent_stock_data()
+
 #the end of class Get_Stock_Data
