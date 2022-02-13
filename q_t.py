@@ -125,12 +125,12 @@ class Get_Stock_Data(Time_Butler):
         #通过下一行更改的数据获取方法
         self.__get_data_methods=self.test
     def fuc(self):
+        text=self.__get_data_methods()
+        self._add_res(text)
         if self._res_full():
             a=Study_Stock_Data(self.res_qsize())
             a.set_args(self.get_res())
             a.start()
-        text=self.__get_data_methods()
-        self._add_res(text)
 #具体各网站数据获取的方法
     def get_tencent_stock_data(self):
         page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.__stock_code))
