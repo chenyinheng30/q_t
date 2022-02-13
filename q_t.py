@@ -1,7 +1,9 @@
 '''一个计时器'''
-from queue import Queue
+from abc import ABC, abstractmethod
+import queue
 from threading import Thread
 import time
+
 def accuracy_sleep(next_time,accuracy):
     delta_time=next_time-time.time()
     if delta_time>accuracy:
@@ -16,3 +18,112 @@ def accuracy_sleep(next_time,accuracy):
     if now_time-next_time>accuracy:
         raise RuntimeError('time_butler: outtime error:'+str(abs(now_time-next_time)))
         return
+#in abstract
+class Thread_WAR(ABC,Thread):
+    '''一个用于为线程提供参数与返回的类
+    '''
+    def __init__(self,sizeof_args,sizeof_res):
+        Thread.__init__(self)
+        self.__args=queue.Queue(sizeof_args) if sizeof_args>0 else None
+        self.__res=queue.Queue(sizeof_res) if sizeof_res>0 else None
+#public_method
+    def start(self) -> None:
+        if self.__args!=None and self.__args.empty():
+            raise RuntimeError('start(): args queue is empty')
+            return
+        else:
+            Thread.start(self)  
+    # def get_args(self):
+    #     return self.__args
+    def get_res(self):
+        if self.__res.full():
+            return self.__res
+        else:
+            raise RuntimeError('get_res(): res queue is not full')
+    def res_qsize(self):
+        return self.__res.qsize()
+    def add_args(self,arg,block=True,timeout=None):
+        self.__args.put(arg,block,timeout)
+#protected_method
+    def _add_res(self,res,bool=True,timeout=None):
+        self.__res.put(res,bool,timeout)
+    def _res_full(self):
+        return self.__res.full()
+    def _res_empty(self):
+        return self.__res.empty()
+
+    def _args_exist(self):
+        return self.__args!=None
+    def _args_full(self):
+        return self.__args.full()
+    def _args_get(self,block=True,timeout=None):
+        return self.__args.get(block,timeout)
+    def _args_qsize(self):
+        return self.__args.qsize()
+#abstract_method
+    @abstractmethod
+    def set_args(self):
+        pass
+#the of class Thread_WAR
+
+class Time_Butler(Thread_WAR):
+    def __init__(self,end_time,cycle,sizeof_args,sizeof_res):
+        Thread.__init__(self)
+        Thread_WAR.__init__(self,sizeof_args,sizeof_res)
+        self.__end_time=end_time
+        self.__cycle=cycle
+        self.__count=0
+#public_method
+    def run(self):
+        if self._args_exist():
+            if not self._args_full():
+                raise RuntimeError('time_butler: args is empty')
+                return
+        start_time=time.time()
+        next_time=start_time+self.__cycle
+        end_time=self.__end_time+start_time
+        while next_time<=end_time:
+            self.fuc()
+            sleep_time=next_time-time.time()
+            time.sleep(sleep_time if sleep_time>0 else 0)
+            next_time+=self.__cycle
+            self.__count+=1
+    def get_count(self):
+        return self.__count
+    def set_args(self):
+        pass
+#protected_method
+    @abstractmethod
+    def fuc(self):
+        pass
+#the end of class Time_Butler
+
+
+#in real
+class Study_Stock_Data(Thread_WAR):
+    def set_args(self,args):
+        for i in range(args.qsize()):
+            self.add_args(args.get())
+    def run(self):
+        for i in range(self._args_qsize()):
+            print(self._args_get())
+        pass
+    def __init__(self, sizeof_args):
+        Thread_WAR.__init__(self,sizeof_args, 0)
+#the end of class Study_Stock_Data
+
+import requests
+class Get_Stock_Data(Time_Butler):
+    def __init__(self,end_time,cycle,sizeof_res,stock_code):
+        Time_Butler.__init__(self,end_time,cycle,0,sizeof_res)
+        self.__stock_code=stock_code
+    def fuc(self):
+        if self._res_full():
+            a=Study_Stock_Data(self.res_qsize())
+            a.set_args(self.get_res())
+            a.start()
+        print(time.time())
+        page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.__stock_code))
+        text=page.text
+        self._add_res(text)
+#the end of class Get_Stock_Data
