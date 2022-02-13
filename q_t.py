@@ -113,7 +113,6 @@ class Study_Stock_Data(Thread_WAR):
     def test(self):
         for i in range(self._args_qsize()):
             print(self._args_get())
-
 #the end of class Study_Stock_Data
 
 import requests
@@ -139,5 +138,4 @@ class Get_Stock_Data(Time_Butler):
     def test(self):
         print(time.time())
         return  self.get_tencent_stock_data()
-
 #the end of class Get_Stock_Data
