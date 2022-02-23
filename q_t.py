@@ -105,37 +105,52 @@ class Study_Stock_Data(Thread_WAR):
         for i in range(args.qsize()):
             self.add_args(args.get())
     def run(self):
-        self.study_stock_data()
+        self.study()
     def __init__(self, sizeof_args):
         Thread_WAR.__init__(self,sizeof_args, 0)
-        self.study_stock_data=self.test
-    #具体各数据处理的方法
-    def test(self):
+    @abstractmethod
+    def study(self):
+        return None
+#the end of class Study_Stock_Data
+class Study_SD_Test(Study_Stock_Data):
+    def __init__(self,sizeof_args):
+        Study_Stock_Data.__init__(self, sizeof_args)
+    def study(self):
         for i in range(self._args_qsize()):
             print(self._args_get())
-#the end of class Study_Stock_Data
 
 import requests
 class Get_Stock_Data(Time_Butler):
     #以下实现抽象的获取数据的过程
-    def __init__(self,end_time,cycle,sizeof_res,stock_code):
+    def __init__(self,end_time,cycle,sizeof_res,stock_code,study_data=Study_Stock_Data):
         Time_Butler.__init__(self,end_time,cycle,0,sizeof_res)
+        self.__study_data=study_data
         self.__stock_code=stock_code
-        #通过下一行更改的数据获取方法
-        self.__get_data_methods=self.test
+    def get_stock_code(self):
+        return self.__stock_code
     def fuc(self):
-        text=self.__get_data_methods()
+        text=self.get_data_method()
         self._add_res(text)
         if self._res_full():
-            a=Study_Stock_Data(self.res_qsize())
+            a=self.__study_data(self.res_qsize())
             a.set_args(self.get_res())
             a.start()
+    @abstractmethod
+    def get_data_method(self):
+        return None
 #具体各网站数据获取的方法
-    def get_tencent_stock_data(self):
-        page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.__stock_code))
+class Tencent_Stock_Interface(Get_Stock_Data):
+    def __init__(self,end_time,cycle,sizeof_res,stock_code,study_data=Study_Stock_Data):
+        Get_Stock_Data.__init__(self,end_time,cycle,sizeof_res,stock_code,study_data)
+    def __get_tencent_stock_data(self):
+        page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.get_stock_code()))
         text=page.text
         return text
-    def test(self):
+    def get_data_method(self):
+        return self.__get_tencent_stock_data()
+class Test_Interface(Tencent_Stock_Interface):
+    def __init__(self,end_time,cycle,sizeof_res,stock_code,study_data=Study_SD_Test):
+        super().__init__(end_time,cycle,sizeof_res,stock_code,study_data)
+    def get_data_method(self):
         print(time.time())
-        return  self.get_tencent_stock_data()
-#the end of class Get_Stock_Data
+        return super().get_data_method()
