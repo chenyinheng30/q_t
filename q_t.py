@@ -142,15 +142,16 @@ class Get_Stock_Data(Time_Butler):
 class Tencent_Stock_Interface(Get_Stock_Data):
     def __init__(self,end_time,cycle,sizeof_res,stock_code,study_data=Study_Stock_Data):
         Get_Stock_Data.__init__(self,end_time,cycle,sizeof_res,stock_code,study_data)
-    def __get_tencent_stock_data(self):
-        page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.get_stock_code()))
-        text=page.text
-        return text
     def get_data_method(self):
-        return self.__get_tencent_stock_data()
+        page=requests.get('http://qt.gtimg.cn/q=s_sh'+str(self.get_stock_code()))
+        return page.text
 class Test_Interface(Tencent_Stock_Interface):
     def __init__(self,end_time,cycle,sizeof_res,stock_code,study_data=Study_SD_Test):
         super().__init__(end_time,cycle,sizeof_res,stock_code,study_data)
     def get_data_method(self):
-        print(time.time())
-        return super().get_data_method()
+        now_time=time.time()
+        # print(now_time)
+        t1=time.time()
+        super().get_data_method()
+        t2=time.time()
+        return int(t2-t1)
